@@ -1,0 +1,7 @@
+app:
+  google:
+    spreadsheet-id: ${SPREADSHEET_ID}
+    credentials-file-path: ${CREDENTIALS_FILE_PATH}
+spring:
+  application:
+    name: PrimeWorker
