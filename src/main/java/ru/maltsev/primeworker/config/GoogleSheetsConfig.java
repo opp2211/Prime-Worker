@@ -8,12 +8,14 @@ import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import ru.maltsev.primeworker.config.properties.GoogleProps;
 
 import java.io.FileInputStream;
 import java.util.List;
 
 @Configuration
+@Profile("!test")
 public class GoogleSheetsConfig {
 
     private final String credentialsFilePath;
