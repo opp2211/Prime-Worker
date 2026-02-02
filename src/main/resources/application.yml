@@ -1,7 +1,6 @@
 app:
   google:
     spreadsheet-id: ${SPREADSHEET_ID}
-    credentials-file-path: ${CREDENTIALS_FILE_PATH}
   bybit:
       api-key: ${BYBIT_API_KEY}
       api-secret: ${BYBIT_API_SECRET}

@@ -8,28 +8,23 @@ import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
-import ru.maltsev.primeworker.config.properties.GoogleProps;
 
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.List;
+import java.util.Objects;
 
 @Configuration
 public class GoogleSheetsConfig {
 
-    private final String credentialsFilePath;
-    private final String appName;
-
-    public GoogleSheetsConfig(GoogleProps props, @Value("${spring.application.name}") String appName) {
-        this.credentialsFilePath = props.getCredentialsFilePath();
-        this.appName = appName;
-    }
+    @Value("${spring.application.name}")
+    private String appName;
 
     @Bean
-    @Lazy
     public Sheets sheetsService() throws Exception {
+        InputStream credentialsStream = getClass().getClassLoader().getResourceAsStream("secrets/google-credentials.json");
+
         GoogleCredentials credentials =
-                GoogleCredentials.fromStream(new FileInputStream(credentialsFilePath))
+                GoogleCredentials.fromStream(Objects.requireNonNull(credentialsStream))
                         .createScoped(List.of("https://www.googleapis.com/auth/spreadsheets"));
 
         return new Sheets.Builder(

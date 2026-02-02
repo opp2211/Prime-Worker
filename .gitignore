@@ -1,6 +1,6 @@
 .env
 application-local.yml
-secrets/*
+src/main/resources/secrets/*
 !secrets/*.example
 
 HELP.md

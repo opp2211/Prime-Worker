@@ -35,8 +35,8 @@ jobs:
       # Создать секретный файл
       - name: Create credentials file google-credentials.json
         run: |
-          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > google-credentials.json
-          ls -la
+          mkdir -p src/main/resources/secrets
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/secrets/google-credentials.json
 
       # Собрать проект и прогнать тесты
       - name: Build and run tests

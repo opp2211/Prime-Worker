@@ -12,5 +12,4 @@ import org.springframework.stereotype.Component;
 public class GoogleProps {
 
     private String spreadsheetId;
-    private String credentialsFilePath;
 }
