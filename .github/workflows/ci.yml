@@ -13,6 +13,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      CREDENTIALS_FILE_PATH: ${{ secrets.SPREADSHEET_ID }}
+      BYBIT_API_KEY: ${{ secrets.SPREADSHEET_ID }}
+      BYBIT_API_SECRET: ${{ secrets.SPREADSHEET_ID }}
+
     steps:
       # 1. Скачать код репозитория
       - name: Checkout repository
