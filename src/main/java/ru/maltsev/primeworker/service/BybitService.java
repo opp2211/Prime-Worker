@@ -36,6 +36,9 @@ public class BybitService {
                                 @Nullable List<BybitPaymentMethod> paymentMethods,
                                 @Nullable Integer amount) throws BybitApiException {
 
+        System.out.println(props.getApiKey());
+        System.out.println(props.getApiSecret());
+
         Map<String, Object> params = new HashMap<>();
 
         params.put("tokenId", bybitToken.getCode());
