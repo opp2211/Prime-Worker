@@ -26,21 +26,45 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BybitService {
 
+    private final int DEFAULT_PAGE_NUM = 1;
+    private final int DEFAULT_PAGE_SIZE = 10;
+
     private final WebClient bybitWebClient;
     private final BybitProps props;
     private final Gson gson;
+
+    public BybitAd getSingleAd(BybitToken bybitToken,
+                              BybitFiat bybitFiat,
+                              BybitSide bybitSide,
+                              @Nullable List<BybitPaymentMethod> paymentMethods,
+                              @Nullable Integer amount,
+                              int adIndex) {
+        return getAds(bybitToken, bybitFiat, bybitSide, paymentMethods, amount, adIndex, 1).getFirst();
+    }
 
     public List<BybitAd> getAds(BybitToken bybitToken,
                                 BybitFiat bybitFiat,
                                 BybitSide bybitSide,
                                 @Nullable List<BybitPaymentMethod> paymentMethods,
-                                @Nullable Integer amount) throws BybitApiException {
+                                @Nullable Integer amount) {
+        return getAds(bybitToken, bybitFiat, bybitSide, paymentMethods, amount, DEFAULT_PAGE_NUM, DEFAULT_PAGE_SIZE);
+    }
+
+    public List<BybitAd> getAds(BybitToken bybitToken,
+                                BybitFiat bybitFiat,
+                                BybitSide bybitSide,
+                                @Nullable List<BybitPaymentMethod> paymentMethods,
+                                @Nullable Integer amount,
+                                Integer page,
+                                Integer pageSize) throws BybitApiException {
 
         Map<String, Object> params = new HashMap<>();
 
         params.put("tokenId", bybitToken.getCode());
         params.put("currencyId", bybitFiat.getCode());
         params.put("side", bybitSide.getCode());
+        params.put("page", page.toString());
+        params.put("size", pageSize.toString());
         if (paymentMethods != null && !paymentMethods.isEmpty()) {
             List<String> stringList = paymentMethods.stream()
                     .map(BybitPaymentMethod::getCode)

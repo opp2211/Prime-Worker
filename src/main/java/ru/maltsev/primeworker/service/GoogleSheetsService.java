@@ -23,16 +23,14 @@ public class GoogleSheetsService {
      * Перезаписывает содержимое ячейки
      *
      * @param data      Данные, которые необходимо записать в ячейку.
-     * @param sheetName Название листа в таблицах.
-     * @param cellIndex Индекс ячейки [Нотация A1]
+     * @param cellRef Адрес ячейки [Нотация Лист!A1]
      */
-    public void writeDataToCell(String data, String sheetName, String cellIndex) throws IOException {
+    public void writeDataToCell(String data, String cellRef) throws IOException {
 
-        String range = prepareRange(sheetName, cellIndex);
         ValueRange valueRange = prepareCellValueRange(data);
 
         sheets.spreadsheets().values()
-                .update(spreadsheetId, range, valueRange)
+                .update(spreadsheetId, cellRef, valueRange)
                 .setValueInputOption("USER_ENTERED")
                 .execute();
     }
@@ -42,10 +40,6 @@ public class GoogleSheetsService {
                 List.of(data)
         );
         return new ValueRange().setValues(values);
-    }
-
-    private String prepareRange(String sheetName, String cellIndex) {
-        return sheetName + "!" +  cellIndex;
     }
 
 }

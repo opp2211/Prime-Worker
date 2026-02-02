@@ -5,17 +5,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.IOException;
-
 @SpringBootTest
-class GoogleSheetsServiceTest {
+class PrimeServiceTest {
 
     @Autowired
-    private GoogleSheetsService googleSheetsService;
+    private PrimeService primeService;
 
-    @Test
     @Disabled
-    void writeDataToCell() throws IOException {
-        googleSheetsService.writeDataToCell("132", "Заметки!A1");
+    @Test
+    void doBusinessLogic() {
+        primeService.doBusinessLogic();
     }
 }
