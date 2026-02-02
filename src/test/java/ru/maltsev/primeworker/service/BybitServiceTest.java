@@ -3,11 +3,7 @@ package ru.maltsev.primeworker.service;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import ru.maltsev.primeworker.config.AppConfig;
-import ru.maltsev.primeworker.config.WebClientConfig;
-import ru.maltsev.primeworker.config.properties.BybitProps;
 import ru.maltsev.primeworker.dto.BybitAd;
 import ru.maltsev.primeworker.model.BybitFiat;
 import ru.maltsev.primeworker.model.BybitSide;
@@ -15,8 +11,7 @@ import ru.maltsev.primeworker.model.BybitToken;
 
 import java.util.List;
 
-@EnableConfigurationProperties(BybitProps.class)
-@SpringBootTest(classes = {BybitService.class, WebClientConfig.class, AppConfig.class})
+@SpringBootTest
 class BybitServiceTest {
 
     @Autowired
