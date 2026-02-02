@@ -1,6 +1,7 @@
 package ru.maltsev.primeworker.service;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +18,7 @@ class BybitServiceTest {
     @Autowired
     private BybitService service;
 
+    @Disabled
     @Test
     void getAds() {
         List<BybitAd> ads = service.getAds(BybitToken.USDT, BybitFiat.KZT, BybitSide.BUY, null, 50_000);

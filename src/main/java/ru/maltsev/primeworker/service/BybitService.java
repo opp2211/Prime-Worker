@@ -36,9 +36,6 @@ public class BybitService {
                                 @Nullable List<BybitPaymentMethod> paymentMethods,
                                 @Nullable Integer amount) throws BybitApiException {
 
-        System.out.println(props.getApiKey());
-        System.out.println(props.getApiSecret());
-
         Map<String, Object> params = new HashMap<>();
 
         params.put("tokenId", bybitToken.getCode());
@@ -55,17 +52,8 @@ public class BybitService {
         }
 
         String jsonBody = gson.toJson(params);
-
         String timestamp = String.valueOf(Instant.now().toEpochMilli());
-
         String signature = generateSignature(jsonBody, timestamp);
-
-
-        System.out.println("Json Body: " + jsonBody);
-        System.out.println("Timestamp: " + timestamp);
-        System.out.println("Api Key: " + props.getApiKey());
-        System.out.println("Api Secret: " + props.getApiSecret());
-        System.out.println("Recv Window: " + props.getRecvWindow());
 
         BybitResponse response =
                 bybitWebClient.post()
