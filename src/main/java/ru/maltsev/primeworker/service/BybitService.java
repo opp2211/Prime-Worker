@@ -60,6 +60,13 @@ public class BybitService {
 
         String signature = generateSignature(jsonBody, timestamp);
 
+
+        System.out.println("Json Body: " + jsonBody);
+        System.out.println("Timestamp: " + timestamp);
+        System.out.println("Api Key: " + props.getApiKey());
+        System.out.println("Api Secret: " + props.getApiSecret());
+        System.out.println("Recv Window: " + props.getRecvWindow());
+
         BybitResponse response =
                 bybitWebClient.post()
                         .uri("/v5/p2p/item/online")
