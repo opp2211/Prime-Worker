@@ -7,5 +7,7 @@ app:
       recv-window: 5000
 
 spring:
+  main:
+    web-application-type: none
   application:
     name: PrimeWorker

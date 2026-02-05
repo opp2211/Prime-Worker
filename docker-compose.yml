@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  prime-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prime-worker
+    env_file:
+      - .env
+    restart: unless-stopped
