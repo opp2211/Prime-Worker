@@ -9,8 +9,10 @@ import ru.maltsev.primeworker.model.BybitPaymentMethod;
 import ru.maltsev.primeworker.model.BybitSide;
 import ru.maltsev.primeworker.model.BybitToken;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Slf4j
@@ -18,73 +20,91 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PrimeService {
 
+    private static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    private static final ZoneId ZONE_ID = ZoneId.of("Asia/Yekaterinburg");
+
     private final GoogleSheetsService googleSheetsService;
     private final BybitService bybitService;
 
-    public void doBusinessLogic() {
-        updateG5Rate();
-        updateG6Rate();
-        updateG7Rate();
-        updateG8Rate();
+    public void updateSpreadsheetData() {
+        updateBybitRates();
     }
 
-    private void updateG5Rate() {
-        updateBuyUsdtCell("G5",
-                BybitFiat.RUB,
-                List.of(BybitPaymentMethod.BANK_TRANSFER),
-                10_000,
-                8);
+    public void updateBybitRates() {
+        updateRub8thRate();
+        updateRub20thRate();
+        updateKzt1stRate();
+        updateKzt2ndRate();
     }
 
-    private void updateG6Rate() {
-        updateBuyUsdtCell("G6",
-                BybitFiat.RUB,
-                List.of(BybitPaymentMethod.BANK_TRANSFER),
-                10_000,
-                20);
-    }
-
-    private void updateG7Rate() {
-        updateBuyUsdtCell("G7",
-                BybitFiat.KZT,
-                List.of(BybitPaymentMethod.KASPI_BANK),
-                50_000,
-                1);
-    }
-
-    private void updateG8Rate() {
-        updateBuyUsdtCell("G8",
-                BybitFiat.KZT,
-                List.of(BybitPaymentMethod.KASPI_BANK),
-                50_000,
-                2);
-    }
-
-    private void updateBuyUsdtCell(String cellCode,
-                                   BybitFiat bybitFiat,
-                                   @Nullable List<BybitPaymentMethod> paymentMethods,
-                                   @Nullable Integer amount,
-                                   Integer adIndex) {
+    private void updateRub8thRate() {
+        String startCellRef = "Курс!F5";
 
         BybitAd ad = bybitService.getSingleAd(
                 BybitToken.USDT,
-                bybitFiat,
+                BybitFiat.RUB,
                 BybitSide.BUY,
-                paymentMethods,
-                amount,
-                adIndex);
+                List.of(BybitPaymentMethod.BANK_TRANSFER),
+                10_000,
+                8);
 
-        log.debug(ad.toString());
+        writeTimestampAndRate(startCellRef, ad.getPrice());
+    }
 
+    private void updateRub20thRate() {
+        String startCellRef = "Курс!F6";
+
+        BybitAd ad = bybitService.getSingleAd(
+                BybitToken.USDT,
+                BybitFiat.RUB,
+                BybitSide.BUY,
+                List.of(BybitPaymentMethod.BANK_TRANSFER),
+                10_000,
+                20);
+
+        writeTimestampAndRate(startCellRef, ad.getPrice());
+    }
+
+    private void updateKzt1stRate() {
+        String startCellRef = "Курс!F7";
+
+        BybitAd ad = bybitService.getSingleAd(
+                BybitToken.USDT,
+                BybitFiat.KZT,
+                BybitSide.BUY,
+                List.of(BybitPaymentMethod.KASPI_BANK),
+                50_000,
+                1);
+
+        writeTimestampAndRate(startCellRef, ad.getPrice());
+    }
+
+    private void updateKzt2ndRate() {
+        String startCellRef = "Курс!F8";
+
+        BybitAd ad = bybitService.getSingleAd(
+                BybitToken.USDT,
+                BybitFiat.KZT,
+                BybitSide.BUY,
+                List.of(BybitPaymentMethod.KASPI_BANK),
+                50_000,
+                2);
+
+        writeTimestampAndRate(startCellRef, ad.getPrice());
+    }
+
+    private void writeTimestampAndRate(String startCellRef, Double rate) {
+        String timestamp = ZonedDateTime.now(ZONE_ID).format(DTF);
+        List<Object> dataList = List.of(timestamp, formatDoubleToCommaString(rate));
         try {
-            googleSheetsService.writeDataToCell(formatDoubleToString(ad.getPrice()), "Курс!"+ cellCode);
+            googleSheetsService.writeDataToRow(dataList, startCellRef);
         } catch (IOException e) {
             log.error(e.getMessage());
             throw new RuntimeException(e);
         }
     }
 
-    private String formatDoubleToString(double value) {
+    private String formatDoubleToCommaString(double value) {
         return String.valueOf(value).replace('.', ',');
     }
 

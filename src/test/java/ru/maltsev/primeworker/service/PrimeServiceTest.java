@@ -13,7 +13,7 @@ class PrimeServiceTest {
 
     @Disabled
     @Test
-    void doBusinessLogic() {
-        primeService.doBusinessLogic();
+    void updateSpreadsheetData() {
+        primeService.updateSpreadsheetData();
     }
 }
