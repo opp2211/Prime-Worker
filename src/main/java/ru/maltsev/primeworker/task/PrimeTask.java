@@ -11,7 +11,7 @@ public class PrimeTask {
 
     private final PrimeService primeService;
 
-    @Scheduled(cron = "*/30 * * * * *")
+    @Scheduled(cron = "0 0 * * * *")
     public void doTask() {
         primeService.updateSpreadsheetData();
     }
