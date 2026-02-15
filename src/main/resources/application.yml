@@ -8,6 +8,9 @@ app:
 
 spring:
   main:
-    web-application-type: none
+    web-application-type: reactive
   application:
     name: PrimeWorker
+
+server:
+  port: 8081
