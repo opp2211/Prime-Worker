@@ -1,4 +1,4 @@
-package ru.maltsev.primeworker.dto;
+package ru.maltsev.primeworker.integration.bybit.dto;
 
 import lombok.Data;
 

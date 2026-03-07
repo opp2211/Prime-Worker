@@ -1,21 +1,20 @@
-package ru.maltsev.primeworker.service;
+package ru.maltsev.primeworker.integration.bybit;
 
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import ru.maltsev.primeworker.config.properties.BybitProps;
-import ru.maltsev.primeworker.dto.BybitAd;
-import ru.maltsev.primeworker.dto.BybitResponse;
-import ru.maltsev.primeworker.dto.BybitServerTimeResponse;
-import ru.maltsev.primeworker.exception.BybitApiException;
-import ru.maltsev.primeworker.model.BybitFiat;
-import ru.maltsev.primeworker.model.BybitPaymentMethod;
-import ru.maltsev.primeworker.model.BybitSide;
-import ru.maltsev.primeworker.model.BybitToken;
+import ru.maltsev.primeworker.domain.p2p.P2pAd;
+import ru.maltsev.primeworker.domain.p2p.P2pQuery;
+import ru.maltsev.primeworker.domain.p2p.TradeSide;
+import ru.maltsev.primeworker.integration.bybit.dto.BybitAd;
+import ru.maltsev.primeworker.integration.bybit.dto.BybitResponse;
+import ru.maltsev.primeworker.integration.bybit.dto.BybitServerTimeResponse;
+import ru.maltsev.primeworker.integration.p2p.P2pClient;
 
-import javax.annotation.Nullable;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -27,55 +26,33 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class BybitService {
+public class BybitP2pClient implements P2pClient {
 
-    private final int DEFAULT_PAGE_NUM = 1;
-    private final int DEFAULT_PAGE_SIZE = 10;
+    private static final int DEFAULT_PAGE_NUM = 1;
+    private static final int DEFAULT_PAGE_SIZE = 10;
 
     private final WebClient bybitWebClient;
     private final BybitProps props;
     private final Gson gson;
 
-    public BybitAd getSingleAd(BybitToken bybitToken,
-                              BybitFiat bybitFiat,
-                              BybitSide bybitSide,
-                              @Nullable List<BybitPaymentMethod> paymentMethods,
-                              @Nullable Integer amount,
-                              int adIndex) {
-        return getAds(bybitToken, bybitFiat, bybitSide, paymentMethods, amount, adIndex, 1).getFirst();
-    }
-
-    public List<BybitAd> getAds(BybitToken bybitToken,
-                                BybitFiat bybitFiat,
-                                BybitSide bybitSide,
-                                @Nullable List<BybitPaymentMethod> paymentMethods,
-                                @Nullable Integer amount) {
-        return getAds(bybitToken, bybitFiat, bybitSide, paymentMethods, amount, DEFAULT_PAGE_NUM, DEFAULT_PAGE_SIZE);
-    }
-
-    public List<BybitAd> getAds(BybitToken bybitToken,
-                                BybitFiat bybitFiat,
-                                BybitSide bybitSide,
-                                @Nullable List<BybitPaymentMethod> paymentMethods,
-                                @Nullable Integer amount,
-                                Integer page,
-                                Integer pageSize) throws BybitApiException {
-
+    @Override
+    public List<P2pAd> findAds(P2pQuery query) throws BybitApiException {
         Map<String, Object> params = new HashMap<>();
 
-        params.put("tokenId", bybitToken.getCode());
-        params.put("currencyId", bybitFiat.getCode());
-        params.put("side", bybitSide.getCode());
-        params.put("page", page.toString());
-        params.put("size", pageSize.toString());
-        if (paymentMethods != null && !paymentMethods.isEmpty()) {
-            List<String> stringList = paymentMethods.stream()
-                    .map(BybitPaymentMethod::getCode)
-                    .toList();
-            params.put("payment", stringList);
+        int page = query.resolvePage(DEFAULT_PAGE_NUM);
+        int pageSize = query.resolvePageSize(DEFAULT_PAGE_SIZE);
+
+        params.put("tokenId", query.asset().getCode());
+        params.put("currencyId", query.fiat().getCode());
+        params.put("side", resolveBybitSide(query.side()));
+        params.put("page", Integer.toString(page));
+        params.put("size", Integer.toString(pageSize));
+
+        if (!query.paymentMethods().isEmpty()) {
+            params.put("payment", query.paymentMethods());
         }
-        if (amount != null) {
-            params.put("amount", amount.toString());
+        if (query.amount() != null) {
+            params.put("amount", query.amount().toPlainString());
         }
 
         String jsonBody = gson.toJson(params);
@@ -83,7 +60,7 @@ public class BybitService {
         String signature = generateSignature(jsonBody, timestamp);
 
         log.info("Bybit P2P request: token={}, fiat={}, side={}, page={}, size={}, amount={}, payments={}",
-                bybitToken, bybitFiat, bybitSide, page, pageSize, amount, paymentMethods);
+                query.asset(), query.fiat(), query.side(), page, pageSize, query.amount(), query.paymentMethods());
         log.debug("Bybit P2P request body: {}", jsonBody);
 
         BybitResponse response =
@@ -93,6 +70,7 @@ public class BybitService {
                         .header("X-BAPI-TIMESTAMP", timestamp)
                         .header("X-BAPI-SIGN", signature)
                         .header("X-BAPI-RECV-WINDOW", props.getRecvWindow())
+                        .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(jsonBody)
                         .retrieve()
                         .bodyToMono(BybitResponse.class)
@@ -115,8 +93,14 @@ public class BybitService {
             throw new BybitApiException(response.getRetMsg());
         }
 
-        return response.getResult().getItems();
+        if (response.getResult() == null || response.getResult().getItems() == null) {
+            return List.of();
+        }
 
+        return response.getResult().getItems()
+                .stream()
+                .map(this::mapAd)
+                .toList();
     }
 
     private long getServerSyncedTimestampMillis() {
@@ -172,8 +156,26 @@ public class BybitService {
         return -1L;
     }
 
-    private String generateSignature(String jsonBody, String timestamp) {
+    private P2pAd mapAd(BybitAd ad) {
+        return new P2pAd(
+                ad.getNickName(),
+                ad.getPrice(),
+                ad.getQuantity(),
+                ad.getMinAmount(),
+                ad.getMaxAmount(),
+                ad.getPayments(),
+                ad.getRemark()
+        );
+    }
 
+    private String resolveBybitSide(TradeSide side) {
+        return switch (side) {
+            case BUY -> "1";
+            case SELL -> "0";
+        };
+    }
+
+    private String generateSignature(String jsonBody, String timestamp) {
         try {
             String payload = timestamp
                     + props.getApiKey()

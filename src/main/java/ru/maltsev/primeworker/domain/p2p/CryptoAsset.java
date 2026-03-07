@@ -1,14 +1,12 @@
-package ru.maltsev.primeworker.model;
+package ru.maltsev.primeworker.domain.p2p;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public enum BybitSide {
-    BUY("1"),
-    SELL("0"),
-    ;
+public enum CryptoAsset {
+    USDT("USDT");
 
     private final String code;
 }

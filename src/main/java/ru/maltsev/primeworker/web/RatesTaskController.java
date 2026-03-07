@@ -8,18 +8,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import ru.maltsev.primeworker.service.PrimeService;
+import ru.maltsev.primeworker.service.RatesUpdateService;
 
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
-public class PrimeTaskController {
+public class RatesTaskController {
 
-    private final PrimeService primeService;
+    private final RatesUpdateService ratesUpdateService;
 
     @PostMapping("/prime-task/run")
     public Mono<ResponseEntity<String>> run() {
-        return Mono.fromRunnable(primeService::updateSpreadsheetData)
+        return Mono.fromRunnable(ratesUpdateService::updateRatesSheet)
                 .subscribeOn(Schedulers.boundedElastic())
                 .thenReturn(ResponseEntity.status(HttpStatus.ACCEPTED).body("Started"));
     }

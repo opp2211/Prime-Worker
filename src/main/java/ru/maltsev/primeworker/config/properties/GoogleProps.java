@@ -12,4 +12,8 @@ import org.springframework.stereotype.Component;
 public class GoogleProps {
 
     private String spreadsheetId;
+    private String sheetName = "Валюты";
+    private String ratesColumn = "J";
+    private int ratesStartRow = 3;
+    private String updatedAtCell = "M1";
 }

@@ -1,6 +1,8 @@
-package ru.maltsev.primeworker.dto;
+package ru.maltsev.primeworker.integration.binance.dto;
 
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class BinanceRequest {
@@ -10,6 +12,6 @@ public class BinanceRequest {
     private String tradeType;    // "BUY"
     private int page;            // 1
     private int rows;            // 10
-    private String payTypes;     // null
+    private List<String> payTypes;     // optional
     private String publisherType;// null
 }

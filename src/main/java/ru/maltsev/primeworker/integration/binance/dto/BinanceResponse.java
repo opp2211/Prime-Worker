@@ -1,4 +1,4 @@
-package ru.maltsev.primeworker.dto;
+package ru.maltsev.primeworker.integration.binance.dto;
 
 import lombok.Data;
 import java.util.List;

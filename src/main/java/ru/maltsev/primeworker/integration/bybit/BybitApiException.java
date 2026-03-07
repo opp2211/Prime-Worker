@@ -1,4 +1,4 @@
-package ru.maltsev.primeworker.exception;
+package ru.maltsev.primeworker.integration.bybit;
 
 public class BybitApiException extends RuntimeException{
     public BybitApiException(String message) {

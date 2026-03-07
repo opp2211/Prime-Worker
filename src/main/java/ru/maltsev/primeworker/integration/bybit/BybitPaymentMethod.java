@@ -1,12 +1,13 @@
-package ru.maltsev.primeworker.model;
+package ru.maltsev.primeworker.integration.bybit;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public enum BybitToken {
-    USDT("USDT"),
+public enum BybitPaymentMethod {
+    BANK_TRANSFER("14"),
+    KASPI_BANK("150"),
     ;
 
     private final String code;
