@@ -21,6 +21,7 @@ public class PrimeService {
 
     private final RatesGoogleSheetService ratesSheet;
     private final BybitService bybitService;
+    private final BinanceService binanceService;
 
     public void updateSpreadsheetData() {
         List<String> rates = new ArrayList<>();
@@ -34,12 +35,20 @@ public class PrimeService {
         var usdToKztRate = getUsdToKztRate();
         var rubToKztRate = getRubToKztRate(rubToUsdRate, usdToKztRate);
 
+        var cnyRate = getCnyRate();
+
         rates.add(formatDecimalToCommaString(usdToRubRate));
         rates.add(formatDecimalToCommaString(rubToUsdRate));
         rates.add(formatDecimalToCommaString(kztToRubRate));
         rates.add(formatDecimalToCommaString(rubToKztRate));
+        rates.add(formatDecimalToCommaString(cnyRate));
 
         ratesSheet.updateRates(rates);
+    }
+
+    private BigDecimal getCnyRate() {
+        String strValue = binanceService.getFifthBuyUsdtToCny().getData().getFirst().getAdv().getPrice();
+        return new BigDecimal(strValue);
     }
 
     private BigDecimal getUsdToRubRate() {
