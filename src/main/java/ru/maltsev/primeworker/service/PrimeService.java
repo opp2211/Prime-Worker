@@ -92,11 +92,13 @@ public class PrimeService {
     }
 
     private BigDecimal getKztToRubRate(BigDecimal kztToUsdRate, BigDecimal usdToRubRate) {
-        return kztToUsdRate.multiply(usdToRubRate);
+        return kztToUsdRate.multiply(usdToRubRate)
+                .setScale(4, RoundingMode.DOWN);
     }
 
     private BigDecimal getRubToKztRate(BigDecimal rubToUsdRate, BigDecimal usdToKztRate) {
-        return rubToUsdRate.multiply(usdToKztRate);
+        return rubToUsdRate.multiply(usdToKztRate)
+                .setScale(4, RoundingMode.DOWN);
     }
 
     private String formatDecimalToCommaString(BigDecimal value) {
