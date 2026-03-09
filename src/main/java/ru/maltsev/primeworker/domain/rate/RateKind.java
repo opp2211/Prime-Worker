@@ -11,7 +11,9 @@ public enum RateKind {
     KZT_RUB(4),
     RUB_KZT(4),
     USDT_CNY(4),
-    FUNPAY_RUB(4);
+    FUNPAY_RUB(4),
+    DD373_MERCHANT(4),
+    DD373_SELLER(4);
 
     private final int scale;
 }

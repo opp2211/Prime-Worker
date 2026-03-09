@@ -11,6 +11,8 @@ import ru.maltsev.primeworker.domain.p2p.TradeSide;
 import ru.maltsev.primeworker.domain.rate.RateKind;
 import ru.maltsev.primeworker.domain.rate.RateValue;
 import ru.maltsev.primeworker.domain.rate.RatesSnapshot;
+import ru.maltsev.primeworker.dd373.Dd373Service;
+import ru.maltsev.primeworker.dd373.dto.Dd373PriceDto;
 import ru.maltsev.primeworker.funpay.FunpayService;
 import ru.maltsev.primeworker.funpay.dto.FunpayOfferDto;
 import ru.maltsev.primeworker.integration.binance.BinanceP2pClient;
@@ -33,6 +35,7 @@ public class RatesCalculationService {
     private final BybitP2pClient bybitClient;
     private final BinanceP2pClient binanceClient;
     private final FunpayService funpayService;
+    private final Dd373Service dd373Service;
 
     public RatesSnapshot calculateRates() {
         BigDecimal usdToRub = bybitPrice(
@@ -78,6 +81,8 @@ public class RatesCalculationService {
         );
 
         BigDecimal funpayRub = funpayPrice(5);
+        BigDecimal dd373Merchant = dd373MerchantPrice(2);
+        BigDecimal dd373Seller = dd373SellerPrice(2);
 
         List<RateValue> values = List.of(
                 new RateValue(RateKind.USD_RUB, usdToRub),
@@ -85,7 +90,9 @@ public class RatesCalculationService {
                 new RateValue(RateKind.KZT_RUB, kztToRub),
                 new RateValue(RateKind.RUB_KZT, rubToKzt),
                 new RateValue(RateKind.USDT_CNY, usdtToCny),
-                new RateValue(RateKind.FUNPAY_RUB, funpayRub)
+                new RateValue(RateKind.FUNPAY_RUB, funpayRub),
+                new RateValue(RateKind.DD373_MERCHANT, dd373Merchant),
+                new RateValue(RateKind.DD373_SELLER, dd373Seller)
         );
 
         return new RatesSnapshot(values);
@@ -139,5 +146,29 @@ public class RatesCalculationService {
         }
         FunpayOfferDto offer = pricedOffers.get(position - 1);
         return offer.getPriceRub();
+    }
+
+    private BigDecimal dd373MerchantPrice(int position) {
+        List<Dd373PriceDto> prices = dd373Service.getMerchantPrices();
+        List<Dd373PriceDto> priced = prices.stream()
+                .filter(price -> price.getPricePerStone() != null)
+                .toList();
+        if (priced.size() < position) {
+            throw new IllegalStateException("Dd373 merchant returned " + priced.size()
+                    + " prices, need " + position);
+        }
+        return priced.get(position - 1).getPricePerStone();
+    }
+
+    private BigDecimal dd373SellerPrice(int position) {
+        List<Dd373PriceDto> prices = dd373Service.getSellerPrices();
+        List<Dd373PriceDto> priced = prices.stream()
+                .filter(price -> price.getPricePerStone() != null)
+                .toList();
+        if (priced.size() < position) {
+            throw new IllegalStateException("Dd373 seller returned " + priced.size()
+                    + " prices, need " + position);
+        }
+        return priced.get(position - 1).getPricePerStone();
     }
 }
