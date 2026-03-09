@@ -7,5 +7,17 @@ services:
     env_file:
       - .env
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "8081:8081"
     mem_limit: 256m
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1450"
