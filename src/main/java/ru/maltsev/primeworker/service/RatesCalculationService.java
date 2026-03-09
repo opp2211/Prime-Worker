@@ -11,6 +11,8 @@ import ru.maltsev.primeworker.domain.p2p.TradeSide;
 import ru.maltsev.primeworker.domain.rate.RateKind;
 import ru.maltsev.primeworker.domain.rate.RateValue;
 import ru.maltsev.primeworker.domain.rate.RatesSnapshot;
+import ru.maltsev.primeworker.funpay.FunpayService;
+import ru.maltsev.primeworker.funpay.dto.FunpayOfferDto;
 import ru.maltsev.primeworker.integration.binance.BinanceP2pClient;
 import ru.maltsev.primeworker.integration.bybit.BybitP2pClient;
 import ru.maltsev.primeworker.integration.bybit.BybitPaymentMethod;
@@ -30,6 +32,7 @@ public class RatesCalculationService {
 
     private final BybitP2pClient bybitClient;
     private final BinanceP2pClient binanceClient;
+    private final FunpayService funpayService;
 
     public RatesSnapshot calculateRates() {
         BigDecimal usdToRub = bybitPrice(
@@ -74,12 +77,15 @@ public class RatesCalculationService {
                 5
         );
 
+        BigDecimal funpayRub = funpayPrice(5);
+
         List<RateValue> values = List.of(
                 new RateValue(RateKind.USD_RUB, usdToRub),
                 new RateValue(RateKind.RUB_USD, rubToUsd),
                 new RateValue(RateKind.KZT_RUB, kztToRub),
                 new RateValue(RateKind.RUB_KZT, rubToKzt),
-                new RateValue(RateKind.USDT_CNY, usdtToCny)
+                new RateValue(RateKind.USDT_CNY, usdtToCny),
+                new RateValue(RateKind.FUNPAY_RUB, funpayRub)
         );
 
         return new RatesSnapshot(values);
@@ -120,5 +126,18 @@ public class RatesCalculationService {
             throw new IllegalStateException("Binance returned ad without price");
         }
         return ad.price();
+    }
+
+    private BigDecimal funpayPrice(int position) {
+        List<FunpayOfferDto> offers = funpayService.getOffers("(PC) Mirage", false);
+        List<FunpayOfferDto> pricedOffers = offers.stream()
+                .filter(offer -> offer.getPriceRub() != null)
+                .toList();
+        if (pricedOffers.size() < position) {
+            throw new IllegalStateException("Funpay returned " + pricedOffers.size()
+                    + " offers with price, need " + position);
+        }
+        FunpayOfferDto offer = pricedOffers.get(position - 1);
+        return offer.getPriceRub();
     }
 }

@@ -16,13 +16,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class FunpayService { //(PC) Mirage
+public class FunpayService {
 
     private static final String URL = "https://funpay.com/chips/173/";
 
 
 
-    public List<FunpayOfferDto> getOffers(String league, Boolean onlineOnly) {
+    public List<FunpayOfferDto> getOffers(String league, boolean onlineOnly) {
         List<FunpayOfferDto> offers = loadOffers();
 
         if (league != null && !league.isBlank()) {
@@ -31,7 +31,7 @@ public class FunpayService { //(PC) Mirage
                     .collect(Collectors.toList());
         }
 
-        if (Boolean.TRUE.equals(onlineOnly)) {
+        if (onlineOnly) {
             offers = offers.stream()
                     .filter(FunpayOfferDto::isOnline)
                     .collect(Collectors.toList());
