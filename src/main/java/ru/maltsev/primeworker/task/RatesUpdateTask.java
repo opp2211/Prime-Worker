@@ -11,7 +11,7 @@ public class RatesUpdateTask {
 
     private final RatesUpdateService ratesUpdateService;
 
-    @Scheduled(cron = "0 0/5 * * * *")
+    @Scheduled(cron = "0 0/2 * * * *")
     public void doTask() {
         ratesUpdateService.updateRatesSheet();
     }
