@@ -1,5 +1,3 @@
-version: "2.4"
-
 services:
   prime-worker:
     build:
@@ -9,6 +7,5 @@ services:
     env_file:
       - .env
     restart: unless-stopped
-    ports:
-      - "8081:8081"
+    network_mode: host
     mem_limit: 256m
