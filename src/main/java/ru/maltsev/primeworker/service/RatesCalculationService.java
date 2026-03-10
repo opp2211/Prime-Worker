@@ -142,7 +142,7 @@ public class RatesCalculationService {
     }
 
     private BigDecimal funpayPrice(int position) {
-        List<FunpayOfferDto> offers = funpayService.getOffers("(PC) Mirage", false);
+        List<FunpayOfferDto> offers = funpayService.getOffers("(PC) Mirage", true);
         if (offers.size() < position) {
             return BigDecimal.ZERO;
         }
