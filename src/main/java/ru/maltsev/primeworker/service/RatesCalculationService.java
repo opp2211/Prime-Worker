@@ -87,8 +87,7 @@ public class RatesCalculationService {
         BigDecimal dd373Merchant = dd373MerchantPrice(2);
         BigDecimal dd373Seller = dd373SellerPrice(2);
         BigDecimal g2gUsd = getG2gUsdPrice(1)
-                .setScale(4, RoundingMode.DOWN)
-                .subtract(new BigDecimal("0.0001"));
+                .setScale(4, RoundingMode.DOWN);
 
         List<RateValue> values = List.of(
                 new RateValue(RateKind.USD_RUB, usdToRub),
