@@ -84,7 +84,7 @@ public class RatesCalculationService {
         );
 
         BigDecimal funpayRub = funpayPrice(5);
-        BigDecimal dd373Merchant = dd373MerchantPrice(2);
+        BigDecimal dd373Merchant = dd373MerchantPrice(1);
         BigDecimal dd373Seller = dd373SellerPrice(2);
         BigDecimal g2gUsd = getG2gUsdPrice(1)
                 .setScale(4, RoundingMode.DOWN);
