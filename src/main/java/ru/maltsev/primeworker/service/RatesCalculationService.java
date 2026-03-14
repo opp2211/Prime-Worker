@@ -45,7 +45,7 @@ public class RatesCalculationService {
                 FiatCurrency.RUB,
                 List.of(BybitPaymentMethod.BANK_TRANSFER.getCode()),
                 new BigDecimal("10000"),
-                8
+                6
         ).divide(BYBIT_FEE_FACTOR, MC);
 
         BigDecimal rubToUsd = BigDecimal.ONE.divide(
@@ -85,7 +85,7 @@ public class RatesCalculationService {
 
         BigDecimal funpayRub = funpayPrice(5);
         BigDecimal dd373Merchant = dd373MerchantPrice(1);
-        BigDecimal dd373Seller = dd373SellerPrice(2);
+        BigDecimal dd373Seller = dd373SellerPrice(1);
         BigDecimal g2gUsd = getG2gUsdPrice(1)
                 .setScale(4, RoundingMode.DOWN);
 
