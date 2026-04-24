@@ -1,5 +1,6 @@
 package ru.maltsev.primeworker.dd373;
 
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -7,18 +8,38 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import ru.maltsev.primeworker.dd373.dto.Dd373PriceDto;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class Dd373Service {
+
+    private static final String USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    + "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
     private static final String MERCHANTS_URL =
             "https://www.dd373.com/s-mnh4dv-n75hgf-2a7xrg-0-0-0-94vje2-0-0-recycle-0-0-1-0-0-1.html";
 
     private static final String SELLERS_URL =
             "https://www.dd373.com/s-mnh4dv-n75hgf-2a7xrg-0-0-0-94vje2-0-0-0-0-0-1-0-0-1.html";
+
+    private static final Pattern DD373_ARG1_PATTERN = Pattern.compile("var\\s+arg1='([0-9A-F]+)'");
+
+    private static final String ACW_SC_V2_XOR_KEY = "3000176000856006061501533003690027800375";
+
+    private static final int[] ACW_SC_V2_PERMUTATION = {
+            15, 35, 29, 24, 33, 16, 1, 38, 10, 9,
+            19, 31, 40, 27, 22, 23, 25, 13, 6, 11,
+            39, 18, 20, 8, 14, 21, 32, 26, 2, 30,
+            7, 4, 17, 5, 3, 28, 34, 37, 12, 36
+    };
 
     public List<Dd373PriceDto> getMerchantPrices() {
         try {
@@ -39,11 +60,68 @@ public class Dd373Service {
     }
 
     private Document loadDocument(String url) throws Exception {
+        Connection.Response firstResponse = newConnection(url).execute();
+        if (!isAntiBotChallenge(firstResponse.body())) {
+            return firstResponse.parse();
+        }
+
+        Map<String, String> cookies = new HashMap<>(firstResponse.cookies());
+        cookies.put("acw_sc__v2", buildAcwScV2(extractArg1(firstResponse.body())));
+
+        Connection.Response secondResponse = newConnection(url)
+                .cookies(cookies)
+                .execute();
+
+        if (isAntiBotChallenge(secondResponse.body())) {
+            throw new IOException("dd373 anti-bot challenge is still active after cookie retry");
+        }
+
+        return secondResponse.parse();
+    }
+
+    private Connection newConnection(String url) {
         return Jsoup.connect(url)
-                .userAgent("Mozilla/5.0")
+                .userAgent(USER_AGENT)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                 .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-                .timeout(15000)
-                .get();
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+                .timeout(15000);
+    }
+
+    private boolean isAntiBotChallenge(String body) {
+        return body.contains("acw_sc__v2") && DD373_ARG1_PATTERN.matcher(body).find();
+    }
+
+    private String extractArg1(String body) throws IOException {
+        Matcher matcher = DD373_ARG1_PATTERN.matcher(body);
+        if (!matcher.find()) {
+            throw new IOException("dd373 anti-bot page does not contain arg1");
+        }
+        return matcher.group(1);
+    }
+
+    static String buildAcwScV2(String arg1) {
+        if (arg1 == null || arg1.length() != ACW_SC_V2_PERMUTATION.length) {
+            throw new IllegalArgumentException("Unexpected dd373 arg1 length");
+        }
+
+        char[] reordered = new char[ACW_SC_V2_PERMUTATION.length];
+        for (int i = 0; i < ACW_SC_V2_PERMUTATION.length; i++) {
+            reordered[i] = arg1.charAt(ACW_SC_V2_PERMUTATION[i] - 1);
+        }
+
+        StringBuilder result = new StringBuilder(ACW_SC_V2_XOR_KEY.length());
+        for (int i = 0; i < reordered.length; i += 2) {
+            int left = Integer.parseInt(new String(reordered, i, 2), 16);
+            int right = Integer.parseInt(ACW_SC_V2_XOR_KEY.substring(i, i + 2), 16);
+            int value = left ^ right;
+            if (value < 16) {
+                result.append('0');
+            }
+            result.append(Integer.toHexString(value));
+        }
+        return result.toString();
     }
 
     private List<Dd373PriceDto> parseMerchantPrices(Document doc) {
