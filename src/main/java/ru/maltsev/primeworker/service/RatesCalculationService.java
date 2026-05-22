@@ -167,11 +167,23 @@ public class RatesCalculationService {
     }
 
     private BigDecimal getG2gUsdPrice(int position) {
-        List<G2gOfferDto> offers = g2gService.getOffers();
-        if (offers.size() < position) {
+        try {
+            List<G2gOfferDto> offers = g2gService.getOffers();
+            if (offers == null || offers.size() < position) {
+                log.warn("Failed to get G2G USD price: not enough offers, using fallback 0");
+                return BigDecimal.ZERO;
+            }
+
+            BigDecimal priceUsd = offers.get(position - 1).getPriceUsd();
+            if (priceUsd == null) {
+                log.warn("Failed to get G2G USD price: offer price is missing, using fallback 0");
+                return BigDecimal.ZERO;
+            }
+
+            return priceUsd;
+        } catch (Exception e) {
+            log.warn("Failed to get G2G USD price, using fallback 0", e);
             return BigDecimal.ZERO;
         }
-        return offers.get(position - 1).getPriceUsd();
-
     }
 }

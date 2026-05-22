@@ -11,12 +11,15 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class G2gService {
+
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private static final String URL =
             "https://sls.g2g.com/offer/search" +
@@ -37,6 +40,7 @@ public class G2gService {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(URL))
+                    .timeout(REQUEST_TIMEOUT)
                     .header("User-Agent", "Mozilla/5.0")
                     .header("Accept", "application/json")
                     .GET()
@@ -47,8 +51,15 @@ public class G2gService {
                     HttpResponse.BodyHandlers.ofString()
             );
 
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException("G2G returned HTTP status " + response.statusCode());
+            }
+
             return parseOffers(response.body());
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Failed to fetch G2G offers", e);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch G2G offers", e);
         }
