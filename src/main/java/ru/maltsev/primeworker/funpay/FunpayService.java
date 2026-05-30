@@ -27,32 +27,36 @@ public class FunpayService {
     }
 
     public List<FunpayOfferDto> getOffers(String league, String side, boolean onlineOnly) {
-        List<FunpayOfferDto> offers = loadOffers();
+        return filterOffers(loadOffers(), league, side, onlineOnly);
+    }
+
+    List<FunpayOfferDto> filterOffers(List<FunpayOfferDto> offers, String league, String side, boolean onlineOnly) {
+        List<FunpayOfferDto> filteredOffers = new ArrayList<>(offers);
 
         if (league != null && !league.isBlank()) {
-            offers = offers.stream()
+            filteredOffers = filteredOffers.stream()
                     .filter(o -> league.equalsIgnoreCase(o.getLeague()))
                     .collect(Collectors.toList());
         }
 
         if (side != null && !side.isBlank()) {
-            offers = offers.stream()
+            filteredOffers = filteredOffers.stream()
                     .filter(o -> side.equalsIgnoreCase(o.getSide()))
                     .collect(Collectors.toList());
         }
 
         if (onlineOnly) {
-            offers = offers.stream()
+            filteredOffers = filteredOffers.stream()
                     .filter(FunpayOfferDto::isOnline)
                     .collect(Collectors.toList());
         }
 
-        offers.sort(Comparator.comparing(
+        filteredOffers.sort(Comparator.comparing(
                 FunpayOfferDto::getPriceRub,
                 Comparator.nullsLast(Comparator.naturalOrder())
         ));
 
-        return offers;
+        return filteredOffers;
     }
 
     private List<FunpayOfferDto> loadOffers() {
@@ -73,7 +77,7 @@ public class FunpayService {
         }
     }
 
-    private List<FunpayOfferDto> parseOffers(Document doc) {
+    List<FunpayOfferDto> parseOffers(Document doc) {
         List<FunpayOfferDto> result = new ArrayList<>();
 
         Elements rows = doc.select(".tc-item");
