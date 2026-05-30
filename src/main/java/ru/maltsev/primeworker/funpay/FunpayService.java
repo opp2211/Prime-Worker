@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @Service
 public class FunpayService {
 
-    private static final String URL = "https://funpay.com/chips/173/";
+    private static final String URL = "https://funpay.com/chips/209/";
 
 
 
