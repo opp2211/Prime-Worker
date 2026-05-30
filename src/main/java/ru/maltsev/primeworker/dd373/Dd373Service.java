@@ -25,12 +25,20 @@ public class Dd373Service {
                     + "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
     private static final String MERCHANTS_URL =
-            "https://www.dd373.com/s-mnh4dv-n75hgf-2a7xrg-0-0-0-94vje2-0-0-recycle-0-0-1-0-0-1.html";
+            "https://www.dd373.com/s-3hcpqw-bwgvrk-fj6p5a-0-0-0-8rknmp-0-0-recycle-0-0-1-0-0-1.html";
 
     private static final String SELLERS_URL =
-            "https://www.dd373.com/s-mnh4dv-n75hgf-2a7xrg-0-0-0-94vje2-0-0-0-0-0-1-0-0-1.html";
+            "https://www.dd373.com/s-3hcpqw-bwgvrk-fj6p5a-0-0-0-8rknmp-0-0-0-0-0-1-0-0-1.html?qufu=true";
 
     private static final Pattern DD373_ARG1_PATTERN = Pattern.compile("var\\s+arg1='([0-9A-F]+)'");
+
+    private static final Pattern MERCHANT_PRICE_PATTERN = Pattern.compile(
+            "([0-9]+(?:\\.[0-9]+)?)\\s*\\u5143\\s*/\\s*\\u4e2a(?:\\u795e\\u5723\\u77f3)?"
+    );
+
+    private static final Pattern SELLER_PRICE_PATTERN = Pattern.compile(
+            "1\\s*\\u4e2a(?:\\u795e\\u5723\\u77f3)?\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*\\u5143"
+    );
 
     private static final String ACW_SC_V2_XOR_KEY = "3000176000856006061501533003690027800375";
 
@@ -128,17 +136,15 @@ public class Dd373Service {
         List<Dd373PriceDto> result = new ArrayList<>();
 
         Elements rows = doc.select(".platform-receive-content ul");
+        if (rows.isEmpty()) {
+            rows = doc.select(".platform-receive-content");
+        }
 
         for (Element row : rows) {
             Elements paragraphs = row.select("p.font12.color666");
 
             for (Element p : paragraphs) {
                 String text = p.text().trim();
-
-                if (!text.contains("元/个神圣石")) {
-                    continue;
-                }
-
                 BigDecimal price = parseMerchantPrice(text);
                 if (price != null) {
                     result.add(new Dd373PriceDto(price, text));
@@ -159,11 +165,6 @@ public class Dd373Service {
 
             for (Element p : paragraphs) {
                 String text = p.text().trim();
-
-                if (!text.contains("1个神圣石=") || !text.endsWith("元")) {
-                    continue;
-                }
-
                 BigDecimal price = parseSellerPrice(text);
                 if (price != null) {
                     result.add(new Dd373PriceDto(price, text));
@@ -175,25 +176,26 @@ public class Dd373Service {
     }
 
     private BigDecimal parseMerchantPrice(String text) {
-        String normalized = text
-                .replace("元/个神圣石", "")
-                .trim();
+        Matcher matcher = MERCHANT_PRICE_PATTERN.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
 
         try {
-            return new BigDecimal(normalized);
+            return new BigDecimal(matcher.group(1));
         } catch (Exception e) {
             return null;
         }
     }
 
     private BigDecimal parseSellerPrice(String text) {
-        String normalized = text
-                .replace("1个神圣石=", "")
-                .replace("元", "")
-                .trim();
+        Matcher matcher = SELLER_PRICE_PATTERN.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
 
         try {
-            return new BigDecimal(normalized);
+            return new BigDecimal(matcher.group(1));
         } catch (Exception e) {
             return null;
         }

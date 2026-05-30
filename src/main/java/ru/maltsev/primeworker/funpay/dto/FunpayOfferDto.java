@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 @Getter
 public class FunpayOfferDto {
     private String league;
+    private String side;
     private String seller;
     private boolean online;
     private String stock;
@@ -19,7 +20,12 @@ public class FunpayOfferDto {
     }
 
     public FunpayOfferDto(String league, String seller, boolean online, String stock, String priceText, BigDecimal priceRub) {
+        this(league, null, seller, online, stock, priceText, priceRub);
+    }
+
+    public FunpayOfferDto(String league, String side, String seller, boolean online, String stock, String priceText, BigDecimal priceRub) {
         this.league = league;
+        this.side = side;
         this.seller = seller;
         this.online = online;
         this.stock = stock;

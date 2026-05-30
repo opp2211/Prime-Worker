@@ -23,8 +23,8 @@ public class G2gService {
 
     private static final String URL =
             "https://sls.g2g.com/offer/search" +
-                    "?seo_term=poe-currency" +
-                    "&filter_attr=lgc_19398_tier:lgc_19398_tier_42692%7Clgc_19398_server:lgc_19398_server_61212" +
+                    "?seo_term=path-of-exile-2-currency" +
+                    "&filter_attr=lgc_27013_platform:lgc_27013_platform_62230%7Clgc_27013_tier:lgc_27013_tier_54399" +
                     "&sort=lowest_price" +
                     "&page_size=20" +
                     "&group=0" +

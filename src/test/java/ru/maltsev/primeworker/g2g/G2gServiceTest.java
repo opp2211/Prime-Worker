@@ -52,6 +52,10 @@ class G2gServiceTest {
                 ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()
         );
         assertEquals(Duration.ofSeconds(10), requestCaptor.getValue().timeout().orElseThrow());
+        assertEquals(
+                "https://sls.g2g.com/offer/search?seo_term=path-of-exile-2-currency&filter_attr=lgc_27013_platform:lgc_27013_platform_62230%7Clgc_27013_tier:lgc_27013_tier_54399&sort=lowest_price&page_size=20&group=0&currency=USD&country=DE&v=v2",
+                requestCaptor.getValue().uri().toString()
+        );
         assertEquals(1, offers.size());
         assertEquals(new BigDecimal("1.23"), offers.getFirst().getPriceUsd());
     }

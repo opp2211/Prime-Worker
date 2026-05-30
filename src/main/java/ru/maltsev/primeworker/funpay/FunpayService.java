@@ -23,11 +23,21 @@ public class FunpayService {
 
 
     public List<FunpayOfferDto> getOffers(String league, boolean onlineOnly) {
+        return getOffers(league, null, onlineOnly);
+    }
+
+    public List<FunpayOfferDto> getOffers(String league, String side, boolean onlineOnly) {
         List<FunpayOfferDto> offers = loadOffers();
 
         if (league != null && !league.isBlank()) {
             offers = offers.stream()
                     .filter(o -> league.equalsIgnoreCase(o.getLeague()))
+                    .collect(Collectors.toList());
+        }
+
+        if (side != null && !side.isBlank()) {
+            offers = offers.stream()
+                    .filter(o -> side.equalsIgnoreCase(o.getSide()))
                     .collect(Collectors.toList());
         }
 
@@ -74,6 +84,11 @@ public class FunpayService {
                 league = textOrEmpty(row.selectFirst(".tc-server-inside"));
             }
 
+            String side = textOrEmpty(row.selectFirst(".tc-side"));
+            if (side.isBlank()) {
+                side = textOrEmpty(row.selectFirst(".tc-side-inside"));
+            }
+
             String seller = textOrEmpty(row.selectFirst(".media-user-name"));
 
             Element userBlock = row.selectFirst(".media-user");
@@ -86,6 +101,7 @@ public class FunpayService {
 
             result.add(new FunpayOfferDto(
                     league,
+                    side,
                     seller,
                     online,
                     stock,
