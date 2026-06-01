@@ -33,7 +33,7 @@ public class RatesCalculationService {
 
     private static final BigDecimal BYBIT_FEE_FACTOR = new BigDecimal("1.00275");
     private static final MathContext MC = new MathContext(18, RoundingMode.DOWN);
-    private static final String FUNPAY_LEAGUE = "Return of the Ancients";
+    private static final String FUNPAY_LEAGUE = "Runes of Aldur";
     private static final String FUNPAY_SIDE = "\u0411\u043e\u0436\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0435 \u0441\u0444\u0435\u0440\u044b";
 
     private final BybitP2pClient bybitClient;
