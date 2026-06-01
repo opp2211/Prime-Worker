@@ -55,34 +55,16 @@ jobs:
             cd ~/prime_worker_app
             git pull origin master
             docker compose build
-
-            service_pid="$(systemctl show --property MainPID --value prime-worker.service 2>/dev/null || true)"
-            if [ -n "$service_pid" ] && [ "$service_pid" != "0" ] && kill -0 "$service_pid" 2>/dev/null; then
-              kill -TERM "$service_pid"
-              restarted=false
-              for i in $(seq 1 60); do
-                next_pid="$(systemctl show --property MainPID --value prime-worker.service 2>/dev/null || true)"
-                if [ -n "$next_pid" ] && [ "$next_pid" != "0" ] && [ "$next_pid" != "$service_pid" ]; then
-                  restarted=true
-                  break
-                fi
-                sleep 1
-              done
-              if [ "$restarted" != "true" ]; then
-                echo "prime-worker.service did not restart after stopping docker compose"
-                exit 1
-              fi
-            else
-              docker compose up -d --build
-            fi
+            sudo -n /usr/bin/systemctl restart prime-worker.service
 
             for i in $(seq 1 60); do
-              if docker compose ps --status running --services | grep -qx "prime-worker"; then
+              if systemctl is-active --quiet prime-worker.service && docker compose ps --status running --services | grep -qx "prime-worker"; then
                 docker compose ps
                 exit 0
               fi
               sleep 2
             done
 
+            systemctl status prime-worker.service --no-pager || true
             docker compose ps
             exit 1
