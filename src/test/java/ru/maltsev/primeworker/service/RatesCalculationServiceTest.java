@@ -33,6 +33,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RatesCalculationServiceTest {
 
+    private static final String FUNPAY_LEAGUE = "Runes of Aldur";
+    private static final String FUNPAY_SIDE = "\u0411\u043e\u0436\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0435 \u0441\u0444\u0435\u0440\u044b";
+
     @Mock
     private BybitP2pClient bybitClient;
 
@@ -85,8 +88,8 @@ class RatesCalculationServiceTest {
         when(binanceClient.findAd(any(P2pQuery.class), eq(5)))
                 .thenReturn(new P2pAd("binance", new BigDecimal("7.00"), null, null, null, List.of(), null));
         when(funpayService.getOffers(
-                eq("Return of the Ancients"),
-                eq("\u0411\u043e\u0436\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0435 \u0441\u0444\u0435\u0440\u044b"),
+                eq(FUNPAY_LEAGUE),
+                eq(FUNPAY_SIDE),
                 eq(true)
         ))
                 .thenReturn(List.of(
@@ -113,8 +116,8 @@ class RatesCalculationServiceTest {
 
     private FunpayOfferDto funpayOffer(String price) {
         return new FunpayOfferDto(
-                "Return of the Ancients",
-                "\u0411\u043e\u0436\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0435 \u0441\u0444\u0435\u0440\u044b",
+                FUNPAY_LEAGUE,
+                FUNPAY_SIDE,
                 "funpay",
                 true,
                 "100",
