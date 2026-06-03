@@ -1,6 +1,6 @@
 package ru.maltsev.primeworker.g2g;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.maltsev.primeworker.g2g.dto.G2gOfferDto;
 import tools.jackson.databind.JsonNode;
@@ -14,12 +14,15 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
-@RequiredArgsConstructor
 public class G2gService {
 
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private static final String URL =
             "https://sls.g2g.com/offer/search" +
@@ -34,22 +37,36 @@ public class G2gService {
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final Duration requestTimeout;
+
+    @Autowired
+    public G2gService(HttpClient httpClient, ObjectMapper objectMapper) {
+        this(httpClient, objectMapper, REQUEST_TIMEOUT);
+    }
+
+    G2gService(HttpClient httpClient, ObjectMapper objectMapper, Duration requestTimeout) {
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
+        this.requestTimeout = requestTimeout;
+    }
 
     public List<G2gOfferDto> getOffers() {
+        CompletableFuture<HttpResponse<String>> responseFuture = null;
         try {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(URL))
-                    .timeout(REQUEST_TIMEOUT)
+                    .timeout(requestTimeout)
                     .header("User-Agent", "Mozilla/5.0")
                     .header("Accept", "application/json")
                     .GET()
                     .build();
 
-            HttpResponse<String> response = httpClient.send(
+            responseFuture = httpClient.sendAsync(
                     request,
                     HttpResponse.BodyHandlers.ofString()
             );
+            HttpResponse<String> response = responseFuture.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS);
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IllegalStateException("G2G returned HTTP status " + response.statusCode());
@@ -59,9 +76,22 @@ public class G2gService {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            cancel(responseFuture);
             throw new RuntimeException("Failed to fetch G2G offers", e);
+        } catch (TimeoutException e) {
+            cancel(responseFuture);
+            throw new RuntimeException("Failed to fetch G2G offers", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            throw new RuntimeException("Failed to fetch G2G offers", cause);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch G2G offers", e);
+        }
+    }
+
+    private void cancel(CompletableFuture<?> future) {
+        if (future != null) {
+            future.cancel(true);
         }
     }
 

@@ -13,6 +13,8 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -47,7 +49,7 @@ class G2gServiceTest {
         List<G2gOfferDto> offers = service.getOffers();
 
         ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
-        verify(httpClient).send(
+        verify(httpClient).sendAsync(
                 requestCaptor.capture(),
                 ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()
         );
@@ -63,16 +65,35 @@ class G2gServiceTest {
     @Test
     void getOffersThrowsRuntimeExceptionOnHttpTimeout() throws Exception {
         HttpClient httpClient = mock(HttpClient.class);
-        when(httpClient.send(
+        CompletableFuture<HttpResponse<String>> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new HttpTimeoutException("timeout"));
+        when(httpClient.sendAsync(
                 any(HttpRequest.class),
                 ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()
         ))
-                .thenThrow(new HttpTimeoutException("timeout"));
+                .thenReturn(failedFuture);
         G2gService service = new G2gService(httpClient, new ObjectMapper());
 
         RuntimeException exception = assertThrows(RuntimeException.class, service::getOffers);
 
         assertTrue(exception.getMessage().contains("Failed to fetch G2G offers"));
+    }
+
+    @Test
+    void getOffersCancelsRequestWhenFutureHangs() {
+        HttpClient httpClient = mock(HttpClient.class);
+        CompletableFuture<HttpResponse<String>> hangingFuture = new CompletableFuture<>();
+        when(httpClient.sendAsync(
+                any(HttpRequest.class),
+                ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()
+        ))
+                .thenReturn(hangingFuture);
+        G2gService service = new G2gService(httpClient, new ObjectMapper(), Duration.ofMillis(10));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, service::getOffers);
+
+        assertTrue(exception.getCause() instanceof TimeoutException);
+        assertTrue(hangingFuture.isCancelled());
     }
 
     @Test
@@ -87,11 +108,11 @@ class G2gServiceTest {
     }
 
     private void stubSend(HttpClient httpClient, HttpResponse<String> response) throws Exception {
-        when(httpClient.send(
+        when(httpClient.sendAsync(
                 any(HttpRequest.class),
                 ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()
         ))
-                .thenReturn(response);
+                .thenReturn(CompletableFuture.completedFuture(response));
     }
 
     @SuppressWarnings("unchecked")
