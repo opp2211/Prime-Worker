@@ -49,6 +49,33 @@ class FunpayServiceTest {
     }
 
     @Test
+    void parseOffersSkipsRowsWithoutPrice() {
+        String html = """
+                <div class="tc-item">
+                    <div class="tc-server">%s</div>
+                    <div class="tc-side">%s</div>
+                    <div class="media-user online">
+                        <span class="media-user-name">missing-price</span>
+                    </div>
+                </div>
+                <div class="tc-item">
+                    <div class="tc-server">%s</div>
+                    <div class="tc-side">%s</div>
+                    <div class="media-user online">
+                        <span class="media-user-name">valid-offer</span>
+                    </div>
+                    <div class="tc-price">10,50 %s</div>
+                </div>
+                """.formatted(LEAGUE, DIVINE_ORBS, LEAGUE, DIVINE_ORBS, RUBLE_SIGN);
+
+        List<FunpayOfferDto> offers = funpayService.parseOffers(Jsoup.parse(html));
+
+        assertEquals(1, offers.size());
+        assertEquals("valid-offer", offers.getFirst().getSeller());
+        assertEquals(new BigDecimal("10.50"), offers.getFirst().getPriceRub());
+    }
+
+    @Test
     void filterOffersKeepsOnlinePoe2DivineOrbsSortedByRubPrice() {
         List<FunpayOfferDto> offers = List.of(
                 offer("Standard", DIVINE_ORBS, true, "1.00"),

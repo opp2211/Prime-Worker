@@ -100,8 +100,16 @@ public class FunpayService {
 
             String stock = textOrEmpty(row.selectFirst(".tc-amount"));
 
-            String priceText = extractRubPrice(row.selectFirst(".tc-price"));
+            Element priceElement = row.selectFirst(".tc-price");
+            if (priceElement == null) {
+                continue;
+            }
+
+            String priceText = extractRubPrice(priceElement);
             BigDecimal priceRub = parseRubPrice(priceText);
+            if (priceRub == null) {
+                continue;
+            }
 
             result.add(new FunpayOfferDto(
                     league,
