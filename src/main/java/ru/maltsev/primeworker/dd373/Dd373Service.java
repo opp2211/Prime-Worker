@@ -25,7 +25,7 @@ public class Dd373Service {
                     + "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
     private static final String MERCHANTS_URL =
-            "https://www.dd373.com/s-3hcpqw-bwgvrk-fj6p5a-0-0-0-8rknmp-0-0-recycle-0-0-1-0-0-1.html";
+            "https://www.dd373.com/s-3hcpqw-bwgvrk-fj6p5a-0-0-0-8rknmp-0-0-receive-0-0-1-0-0-1.html";
 
     private static final String SELLERS_URL =
             "https://www.dd373.com/s-3hcpqw-bwgvrk-fj6p5a-0-0-0-8rknmp-0-0-0-0-0-1-0-0-1.html?qufu=true";
