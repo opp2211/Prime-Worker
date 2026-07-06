@@ -1,203 +1,184 @@
 package ru.maltsev.primeworker.dd373;
 
-import org.jsoup.Connection;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.maltsev.primeworker.dd373.dto.Dd373PriceDto;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class Dd373Service {
+
+    static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                     + "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
     private static final String MERCHANTS_URL =
-            "https://www.dd373.com/s-3hcpqw-bwgvrk-fj6p5a-0-0-0-8rknmp-0-0-receive-0-0-1-0-0-1.html";
+            "https://goods.dd373.com/Api/Receive/UserCenter/ApiGetNeedShopList"
+                    + "?GameId=3e7c2e61c71142b2a330b85a5f6d09b2"
+                    + "&GameOtherId=49a82504a8e4490fb8ff8bc8dd8c4a08_84217c5bec5a4e48bc9359b94bc6ae90"
+                    + "&GameShopTypeId=a34b2bed8f794b6eac11dce4fa9bb6d7";
 
     private static final String SELLERS_URL =
-            "https://www.dd373.com/s-3hcpqw-bwgvrk-fj6p5a-0-0-0-8rknmp-0-0-0-0-0-1-0-0-1.html?qufu=true";
+            "https://goods.dd373.com/Api/Goods/UserCenter/ApiGetShopList"
+                    + "?GameId=3e7c2e61c71142b2a330b85a5f6d09b2"
+                    + "&GameOtherId=49a82504a8e4490fb8ff8bc8dd8c4a08_84217c5bec5a4e48bc9359b94bc6ae90"
+                    + "&GameShopTypeId=a34b2bed8f794b6eac11dce4fa9bb6d7";
 
-    private static final Pattern DD373_ARG1_PATTERN = Pattern.compile("var\\s+arg1='([0-9A-F]+)'");
+    private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
+    private final Duration requestTimeout;
 
-    private static final Pattern MERCHANT_PRICE_PATTERN = Pattern.compile(
-            "([0-9]+(?:\\.[0-9]+)?)\\s*\\u5143\\s*/\\s*\\u4e2a(?:\\u795e\\u5723\\u77f3)?"
-    );
+    @Autowired
+    public Dd373Service(HttpClient httpClient, ObjectMapper objectMapper) {
+        this(httpClient, objectMapper, REQUEST_TIMEOUT);
+    }
 
-    private static final Pattern SELLER_PRICE_PATTERN = Pattern.compile(
-            "1\\s*\\u4e2a(?:\\u795e\\u5723\\u77f3)?\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*\\u5143"
-    );
-
-    private static final String ACW_SC_V2_XOR_KEY = "3000176000856006061501533003690027800375";
-
-    private static final int[] ACW_SC_V2_PERMUTATION = {
-            15, 35, 29, 24, 33, 16, 1, 38, 10, 9,
-            19, 31, 40, 27, 22, 23, 25, 13, 6, 11,
-            39, 18, 20, 8, 14, 21, 32, 26, 2, 30,
-            7, 4, 17, 5, 3, 28, 34, 37, 12, 36
-    };
+    Dd373Service(HttpClient httpClient, ObjectMapper objectMapper, Duration requestTimeout) {
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
+        this.requestTimeout = requestTimeout;
+    }
 
     public List<Dd373PriceDto> getMerchantPrices() {
-        try {
-            Document doc = loadDocument(MERCHANTS_URL);
-            return parseMerchantPrices(doc);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load dd373 merchant prices", e);
-        }
+        return fetchPrices(MERCHANTS_URL, "merchant");
     }
 
     public List<Dd373PriceDto> getSellerPrices() {
+        return fetchPrices(SELLERS_URL, "seller");
+    }
+
+    private List<Dd373PriceDto> fetchPrices(String url, String priceType) {
+        CompletableFuture<HttpResponse<String>> responseFuture = null;
         try {
-            Document doc = loadDocument(SELLERS_URL);
-            return parseSellerPrices(doc);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(requestTimeout)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Accept", "application/json, text/plain, */*")
+                    .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+                    .header("Cache-Control", "no-cache")
+                    .header("Pragma", "no-cache")
+                    .header("Referer", "https://www.dd373.com/")
+                    .GET()
+                    .build();
+
+            responseFuture = httpClient.sendAsync(
+                    request,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+            );
+            HttpResponse<String> response = responseFuture.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS);
+
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException("DD373 returned HTTP status " + response.statusCode());
+            }
+
+            return parsePrices(response.body());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            cancel(responseFuture);
+            throw new RuntimeException("Failed to fetch DD373 " + priceType + " prices", e);
+        } catch (TimeoutException e) {
+            cancel(responseFuture);
+            throw new RuntimeException("Failed to fetch DD373 " + priceType + " prices", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            throw new RuntimeException("Failed to fetch DD373 " + priceType + " prices", cause);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load dd373 seller prices", e);
+            throw new RuntimeException("Failed to fetch DD373 " + priceType + " prices", e);
         }
     }
 
-    private Document loadDocument(String url) throws Exception {
-        Connection.Response firstResponse = newConnection(url).execute();
-        if (!isAntiBotChallenge(firstResponse.body())) {
-            return firstResponse.parse();
+    private void cancel(CompletableFuture<?> future) {
+        if (future != null) {
+            future.cancel(true);
         }
-
-        Map<String, String> cookies = new HashMap<>(firstResponse.cookies());
-        cookies.put("acw_sc__v2", buildAcwScV2(extractArg1(firstResponse.body())));
-
-        Connection.Response secondResponse = newConnection(url)
-                .cookies(cookies)
-                .execute();
-
-        if (isAntiBotChallenge(secondResponse.body())) {
-            throw new IOException("dd373 anti-bot challenge is still active after cookie retry");
-        }
-
-        return secondResponse.parse();
     }
 
-    private Connection newConnection(String url) {
-        return Jsoup.connect(url)
-                .userAgent(USER_AGENT)
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-                .header("Cache-Control", "no-cache")
-                .header("Pragma", "no-cache")
-                .timeout(15000);
-    }
+    List<Dd373PriceDto> parsePrices(String json) {
+        JsonNode root = objectMapper.readTree(json);
+        validateResponseCode(root, "StatusCode", "StatusMsg", "DD373 status");
 
-    private boolean isAntiBotChallenge(String body) {
-        return body.contains("acw_sc__v2") && DD373_ARG1_PATTERN.matcher(body).find();
-    }
-
-    private String extractArg1(String body) throws IOException {
-        Matcher matcher = DD373_ARG1_PATTERN.matcher(body);
-        if (!matcher.find()) {
-            throw new IOException("dd373 anti-bot page does not contain arg1");
+        JsonNode statusData = root.get("StatusData");
+        if (statusData == null) {
+            throw new IllegalStateException("DD373 response does not contain StatusData");
         }
-        return matcher.group(1);
-    }
+        validateResponseCode(statusData, "ResultCode", "ResultMsg", "DD373 result");
 
-    static String buildAcwScV2(String arg1) {
-        if (arg1 == null || arg1.length() != ACW_SC_V2_PERMUTATION.length) {
-            throw new IllegalArgumentException("Unexpected dd373 arg1 length");
+        JsonNode resultData = statusData.get("ResultData");
+        if (resultData == null || !resultData.isArray()) {
+            throw new IllegalStateException("DD373 response does not contain ResultData array");
         }
 
-        char[] reordered = new char[ACW_SC_V2_PERMUTATION.length];
-        for (int i = 0; i < ACW_SC_V2_PERMUTATION.length; i++) {
-            reordered[i] = arg1.charAt(ACW_SC_V2_PERMUTATION[i] - 1);
-        }
-
-        StringBuilder result = new StringBuilder(ACW_SC_V2_XOR_KEY.length());
-        for (int i = 0; i < reordered.length; i += 2) {
-            int left = Integer.parseInt(new String(reordered, i, 2), 16);
-            int right = Integer.parseInt(ACW_SC_V2_XOR_KEY.substring(i, i + 2), 16);
-            int value = left ^ right;
-            if (value < 16) {
-                result.append('0');
-            }
-            result.append(Integer.toHexString(value));
-        }
-        return result.toString();
-    }
-
-    private List<Dd373PriceDto> parseMerchantPrices(Document doc) {
-        List<Dd373PriceDto> result = new ArrayList<>();
-
-        Elements rows = doc.select(".platform-receive-content ul");
-        if (rows.isEmpty()) {
-            rows = doc.select(".platform-receive-content");
-        }
-
-        for (Element row : rows) {
-            Elements paragraphs = row.select("p.font12.color666");
-
-            for (Element p : paragraphs) {
-                String text = p.text().trim();
-                BigDecimal price = parseMerchantPrice(text);
-                if (price != null) {
-                    result.add(new Dd373PriceDto(price, text));
-                }
+        List<Dd373PriceDto> prices = new ArrayList<>();
+        for (JsonNode node : resultData) {
+            Dd373PriceDto price = mapPrice(node);
+            if (price.getSingleprice() != null) {
+                prices.add(price);
             }
         }
-
-        return result;
+        return prices;
     }
 
-    private List<Dd373PriceDto> parseSellerPrices(Document doc) {
-        List<Dd373PriceDto> result = new ArrayList<>();
+    private void validateResponseCode(JsonNode node, String codeField, String messageField, String context) {
+        String code = stringValue(node, codeField);
+        if (!"0".equals(code)) {
+            throw new IllegalStateException(context + " is not successful: " + code + " " + stringValue(node, messageField));
+        }
+    }
 
-        Elements items = doc.select(".goods-list-item");
+    private Dd373PriceDto mapPrice(JsonNode node) {
+        Dd373PriceDto dto = new Dd373PriceDto();
+        dto.setId(stringValue(node, "id"));
+        dto.setShopno(stringValue(node, "shopno"));
+        dto.setTrade(stringValue(node, "trade"));
+        dto.setNumber(decimalValue(node, "number"));
+        dto.setUnit(stringValue(node, "unit"));
+        dto.setAmount(decimalValue(node, "amount"));
+        dto.setSingleprice(decimalValue(node, "singleprice"));
+        dto.setMaxamount(decimalValue(node, "maxamount"));
+        dto.setMinamount(decimalValue(node, "minamount"));
+        dto.setSinglecount(decimalValue(node, "singlecount"));
+        dto.setPrice(decimalValue(node, "price"));
+        return dto;
+    }
 
-        for (Element item : items) {
-            Elements paragraphs = item.select(".kucun p.font12.color666");
-
-            for (Element p : paragraphs) {
-                String text = p.text().trim();
-                BigDecimal price = parseSellerPrice(text);
-                if (price != null) {
-                    result.add(new Dd373PriceDto(price, text));
-                }
-            }
+    private String stringValue(JsonNode node, String fieldName) {
+        JsonNode value = node.get(fieldName);
+        if (value == null) {
+            return null;
         }
 
-        return result;
+        String text = value.asString();
+        return text == null || text.isBlank() ? null : text;
     }
 
-    private BigDecimal parseMerchantPrice(String text) {
-        Matcher matcher = MERCHANT_PRICE_PATTERN.matcher(text);
-        if (!matcher.find()) {
+    private BigDecimal decimalValue(JsonNode node, String fieldName) {
+        String value = stringValue(node, fieldName);
+        if (value == null) {
             return null;
         }
 
         try {
-            return new BigDecimal(matcher.group(1));
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private BigDecimal parseSellerPrice(String text) {
-        Matcher matcher = SELLER_PRICE_PATTERN.matcher(text);
-        if (!matcher.find()) {
-            return null;
-        }
-
-        try {
-            return new BigDecimal(matcher.group(1));
-        } catch (Exception e) {
-            return null;
+            return new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("DD373 field " + fieldName + " contains invalid decimal value: " + value, e);
         }
     }
 }

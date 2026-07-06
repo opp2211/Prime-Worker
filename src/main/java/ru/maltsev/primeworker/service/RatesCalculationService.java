@@ -157,7 +157,7 @@ public class RatesCalculationService {
         if (prices.size() < position) {
             return BigDecimal.ZERO;
         }
-        return prices.get(position - 1).getPricePerStone();
+        return prices.get(position - 1).getSingleprice();
     }
 
     private BigDecimal dd373SellerPrice(int position) {
@@ -165,7 +165,7 @@ public class RatesCalculationService {
         if (prices.size() < position) {
             return BigDecimal.ZERO;
         }
-        return prices.get(position - 1).getPricePerStone();
+        return prices.get(position - 1).getSingleprice();
     }
 
     private BigDecimal getG2gUsdPrice(int position) {

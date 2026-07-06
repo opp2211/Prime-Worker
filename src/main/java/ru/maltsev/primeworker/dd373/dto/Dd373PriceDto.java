@@ -9,14 +9,23 @@ import java.math.BigDecimal;
 @Getter
 public class Dd373PriceDto {
 
-    private BigDecimal pricePerStone;
-    private String priceText;
+    private String id;
+    private String shopno;
+    private String trade;
+    private BigDecimal number;
+    private String unit;
+    private BigDecimal amount;
+    private BigDecimal singleprice;
+    private BigDecimal maxamount;
+    private BigDecimal minamount;
+    private BigDecimal singlecount;
+    private BigDecimal price;
 
     public Dd373PriceDto() {}
 
-    public Dd373PriceDto(BigDecimal pricePerStone, String priceText) {
-        this.pricePerStone = pricePerStone;
-        this.priceText = priceText;
+    public Dd373PriceDto(BigDecimal singleprice, String shopno) {
+        this.singleprice = singleprice;
+        this.shopno = shopno;
     }
 
 }
